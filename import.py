@@ -321,8 +321,6 @@ class LBABodyImporter(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
     )
 
     def execute(self, context):
-        scn = context.scene
-
         lba_model = read_lba_model(HQRReader(self.filepath)[self.entry])
 
         #
@@ -333,11 +331,10 @@ class LBABodyImporter(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         amt.show_names = True
 
         rig = bpy.data.objects.new('Rig', amt)
-        rig.location = scn.cursor_location
+        rig.location = bpy.context.scene.cursor.location
 
-        scn.objects.link(rig)
-        scn.objects.active = rig
-        scn.update()
+        bpy.context.collection.objects.link(rig)
+        bpy.context.view_layer.objects.active = rig
 
         #bpy.ops.object.editmode_toggle()
         bpy.ops.object.mode_set(mode='EDIT')
@@ -364,11 +361,10 @@ class LBABodyImporter(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
 
         me = bpy.data.meshes.new('Mesh')
         ob = bpy.data.objects.new('Body', me)
-        ob.location = scn.cursor_location
+        ob.location = bpy.context.scene.cursor.location
 
-        scn.objects.link(ob)
-        scn.objects.active = ob
-        scn.update()
+        bpy.context.collection.objects.link(ob)
+        bpy.context.view_layer.objects.active = ob
 
         me.from_pydata(lba_model.vertices, [], [tuple(y[0] for y in polygon.vertices) for polygon in lba_model.polygons])
         # XXX: calc_edges=True necessary?
@@ -389,7 +385,7 @@ class LBABodyImporter(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
 
         # Create one vertex group per bone
         for i, lba_bone in enumerate(lba_model.bones):
-            grp = ob.vertex_groups.new('Bone {}'.format(i))
+            grp = ob.vertex_groups.new(name='Bone {}'.format(i))
             grp.add(list(range(lba_bone.first_point, lba_bone.first_point + lba_bone.nr_points)), 1.0, 'REPLACE')
 
         # Give mesh object an armature modifier, using vertex groups but
@@ -403,7 +399,7 @@ class LBABodyImporter(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         # Move bones into place
         #
 
-        scn.objects.active = rig
+        bpy.context.view_layer.objects.active = rig
         bpy.ops.object.mode_set(mode='POSE')
 
         for i, lba_bone in enumerate(lba_model.bones):
@@ -421,7 +417,6 @@ class LBABodyImporter(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
 
                 x1, y1, z1 = lba_model.vertices[lba_bone.parent_point]
                 bone.location = (x1, y1, z1)
-                scn.update()
 
         scale = 1. / (1 << 7)
         rig.pose.bones['Bone 0'].scale = (scale, scale, scale)
@@ -430,9 +425,9 @@ class LBABodyImporter(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         # Done
         #
 
-        scn.objects.active = ob
+        bpy.context.view_layer.objects.active = ob
         bpy.ops.object.mode_set(mode='OBJECT')
-        ob.select = True
+        ob.select_set(True)
         bpy.ops.object.shade_smooth()
 
         #bpy.ops.view3d.viewnumpad(type='TOP')
@@ -458,7 +453,7 @@ class LBAPaletteImporter(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
 
     def execute(self, context):
         scn = context.scene
-        ob = scn.objects.active
+        ob = bpy.context.active_object
         me = ob.data
 
         lba_palette = read_lba_palette(HQRReader(self.filepath)[self.entry])
@@ -488,7 +483,7 @@ class LBAAnimationImporter(bpy.types.Operator, bpy_extras.io_utils.ImportHelper)
 
     def execute(self, context):
         scn = context.scene
-        ob = scn.objects.active
+        ob = bpy.context.active_object
 
         #
         # Create action (load animation)
@@ -554,13 +549,13 @@ def register():
     bpy.utils.register_class(LBABodyImporter)
     bpy.utils.register_class(LBAPaletteImporter)
     bpy.utils.register_class(LBAAnimationImporter)
-    bpy.types.INFO_MT_file_import.append(menu_func)
+    bpy.types.TOPBAR_MT_file_import.append(menu_func)
 
 def unregister():
     bpy.utils.unregister_class(LBABodyImporter)
     bpy.utils.unregister_class(LBAPaletteImporter)
     bpy.utils.unregister_class(LBAAnimationImporter)
-    bpy.types.INFO_MT_file_import.remove(menu_func)
+    bpy.types.TOPBAR_MT_file_import.remove(menu_func)
 
 if __name__ == '__main__':
     register()
