@@ -459,7 +459,7 @@ class LBAPaletteImporter(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         lba_palette = read_lba_palette(HQRReader(self.filepath)[self.entry])
         for i, lba_color in enumerate(lba_palette):
             mat = bpy.data.materials.new('Color {}'.format(i))
-            mat.diffuse_color = (lba_color[0] / 255., lba_color[1] / 255., lba_color[2] / 255.)
+            mat.diffuse_color = (lba_color[0] / 255., lba_color[1] / 255., lba_color[2] / 255., 1.)
             me.materials.append(mat)
 
         return {'FINISHED'}
